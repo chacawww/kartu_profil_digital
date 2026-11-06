@@ -1,4 +1,5 @@
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,20 +14,35 @@ void main() async {
 
   bool isDarkMode = prefs.getBool('dark_mode') ?? false;
 
+  String? dataProfil = prefs.getString('data_profil');
+
+  Map<String, dynamic> profil = dataProfil != null
+      ? jsonDecode(dataProfil)
+      : {
+          'nama': 'Nama Mahasiswa',
+          'nim': 'Masukkan NIM',
+          'prodi': 'D-IV Teknik Informatika',
+          'kampus': 'Politeknik Negeri Jember',
+          'kota': 'Jember',
+        };
+
   runApp(MyApp(
     jumlahBuka: jumlahBuka,
     isDarkMode: isDarkMode,
+    profil: profil,
   ));
 }
 
 class MyApp extends StatefulWidget {
   final int jumlahBuka;
   final bool isDarkMode;
+  final Map<String, dynamic> profil;
 
   const MyApp({
     super.key,
     required this.jumlahBuka,
     required this.isDarkMode,
+    required this.profil,
   });
 
   @override
@@ -35,11 +51,13 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late bool isDarkMode;
+  late Map<String, dynamic> profil;
 
   @override
   void initState() {
     super.initState();
     isDarkMode = widget.isDarkMode;
+    profil = Map<String, dynamic>.from(widget.profil);
   }
 
   Future<void> ubahTema(bool value) async {
@@ -48,6 +66,15 @@ class _MyAppState extends State<MyApp> {
 
     setState(() {
       isDarkMode = value;
+    });
+  }
+
+  Future<void> simpanProfil(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('data_profil', jsonEncode(data));
+
+    setState(() {
+      profil = data;
     });
   }
 
@@ -75,7 +102,9 @@ class _MyAppState extends State<MyApp> {
       home: ProfilePage(
         jumlahBuka: widget.jumlahBuka,
         isDarkMode: isDarkMode,
+        profil: profil,
         onThemeChanged: ubahTema,
+        onSave: simpanProfil,
       ),
     );
   }
@@ -84,14 +113,79 @@ class _MyAppState extends State<MyApp> {
 class ProfilePage extends StatelessWidget {
   final int jumlahBuka;
   final bool isDarkMode;
+  final Map<String, dynamic> profil;
   final ValueChanged<bool> onThemeChanged;
+  final ValueChanged<Map<String, dynamic>> onSave;
 
   const ProfilePage({
     super.key,
     required this.jumlahBuka,
     required this.isDarkMode,
+    required this.profil,
     required this.onThemeChanged,
+    required this.onSave,
   });
+
+  void bukaForm(BuildContext context) {
+    final namaController = TextEditingController(text: profil['nama']);
+    final nimController = TextEditingController(text: profil['nim']);
+    final prodiController = TextEditingController(text: profil['prodi']);
+    final kampusController = TextEditingController(text: profil['kampus']);
+    final kotaController = TextEditingController(text: profil['kota']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Profil'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: namaController,
+                decoration: const InputDecoration(labelText: 'Nama'),
+              ),
+              TextField(
+                controller: nimController,
+                decoration: const InputDecoration(labelText: 'NIM'),
+              ),
+              TextField(
+                controller: prodiController,
+                decoration: const InputDecoration(labelText: 'Program Studi'),
+              ),
+              TextField(
+                controller: kampusController,
+                decoration: const InputDecoration(labelText: 'Perguruan Tinggi'),
+              ),
+              TextField(
+                controller: kotaController,
+                decoration: const InputDecoration(labelText: 'Kota'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              onSave({
+                'nama': namaController.text,
+                'nim': nimController.text,
+                'prodi': prodiController.text,
+                'kampus': kampusController.text,
+                'kota': kotaController.text,
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +201,6 @@ class ProfilePage extends StatelessWidget {
             icon: Icon(
               isDarkMode ? Icons.light_mode : Icons.dark_mode,
             ),
-            tooltip: 'Ganti Tema',
             onPressed: () => onThemeChanged(!isDarkMode),
           ),
         ],
@@ -135,9 +228,10 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Nama Mahasiswa',
-                    style: TextStyle(
+                  Text(
+                    profil['nama'],
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.bold,
                     ),
@@ -147,28 +241,34 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 25),
                   const Divider(),
                   const SizedBox(height: 15),
-                  const ProfileInfo(
+                  ProfileInfo(
                     icon: Icons.badge_outlined,
                     label: 'NIM',
-                    value: 'Masukkan NIM',
+                    value: profil['nim'],
                   ),
                   const SizedBox(height: 18),
-                  const ProfileInfo(
+                  ProfileInfo(
                     icon: Icons.school_outlined,
                     label: 'Program Studi',
-                    value: 'D-IV Teknik Informatika',
+                    value: profil['prodi'],
                   ),
                   const SizedBox(height: 18),
-                  const ProfileInfo(
+                  ProfileInfo(
                     icon: Icons.account_balance_outlined,
                     label: 'Perguruan Tinggi',
-                    value: 'Politeknik Negeri Jember',
+                    value: profil['kampus'],
                   ),
                   const SizedBox(height: 18),
-                  const ProfileInfo(
+                  ProfileInfo(
                     icon: Icons.location_on_outlined,
                     label: 'Kota',
-                    value: 'Jember',
+                    value: profil['kota'],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => bukaForm(context),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Profil'),
                   ),
                   const SizedBox(height: 20),
                   const Divider(),
@@ -238,3 +338,4 @@ class ProfileInfo extends StatelessWidget {
     );
   }
 }
+  
