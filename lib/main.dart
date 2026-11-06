@@ -9,16 +9,47 @@ void main() async {
 
   int jumlahBuka = prefs.getInt('jumlah_buka') ?? 0;
   jumlahBuka++;
-
   await prefs.setInt('jumlah_buka', jumlahBuka);
 
-  runApp(MyApp(jumlahBuka: jumlahBuka));
+  bool isDarkMode = prefs.getBool('dark_mode') ?? false;
+
+  runApp(MyApp(
+    jumlahBuka: jumlahBuka,
+    isDarkMode: isDarkMode,
+  ));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final int jumlahBuka;
+  final bool isDarkMode;
 
-  const MyApp({super.key, required this.jumlahBuka});
+  const MyApp({
+    super.key,
+    required this.jumlahBuka,
+    required this.isDarkMode,
+  });
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late bool isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    isDarkMode = widget.isDarkMode;
+  }
+
+  Future<void> ubahTema(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', value);
+
+    setState(() {
+      isDarkMode = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,20 +58,40 @@ class MyApp extends StatelessWidget {
       title: 'Kartu Profil Digital',
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF91B7AE),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF5F7F4),
       ),
-      home: ProfilePage(jumlahBuka: jumlahBuka),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF91B7AE),
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      home: ProfilePage(
+        jumlahBuka: widget.jumlahBuka,
+        isDarkMode: isDarkMode,
+        onThemeChanged: ubahTema,
+      ),
     );
   }
 }
 
 class ProfilePage extends StatelessWidget {
   final int jumlahBuka;
+  final bool isDarkMode;
+  final ValueChanged<bool> onThemeChanged;
 
-  const ProfilePage({super.key, required this.jumlahBuka});
+  const ProfilePage({
+    super.key,
+    required this.jumlahBuka,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,13 +102,20 @@ class ProfilePage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFF5F7F4),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            ),
+            tooltip: 'Ganti Tema',
+            onPressed: () => onThemeChanged(!isDarkMode),
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Card(
-            color: Colors.white,
             elevation: 3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
@@ -82,17 +140,10 @@ class ProfilePage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF344C43),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Mahasiswa Teknik Informatika',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  const Text('Mahasiswa Teknik Informatika'),
                   const SizedBox(height: 25),
                   const Divider(),
                   const SizedBox(height: 15),
@@ -122,23 +173,15 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 20),
                   const Divider(),
                   const SizedBox(height: 12),
-                  const Icon(
-                    Icons.visibility_outlined,
-                    color: Color(0xFF648F81),
-                    size: 28,
-                  ),
+                  const Icon(Icons.visibility_outlined, size: 28),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Jumlah Aplikasi Dibuka',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  const Text('Jumlah Aplikasi Dibuka'),
                   const SizedBox(height: 4),
                   Text(
                     '$jumlahBuka kali',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF344C43),
                     ),
                   ),
                 ],
@@ -167,7 +210,7 @@ class ProfileInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF648F81), size: 25),
+        Icon(icon, size: 25),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
