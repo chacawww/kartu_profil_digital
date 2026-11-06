@@ -1,12 +1,24 @@
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final prefs = await SharedPreferences.getInstance();
+
+  int jumlahBuka = prefs.getInt('jumlah_buka') ?? 0;
+  jumlahBuka++;
+
+  await prefs.setInt('jumlah_buka', jumlahBuka);
+
+  runApp(MyApp(jumlahBuka: jumlahBuka));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final int jumlahBuka;
+
+  const MyApp({super.key, required this.jumlahBuka});
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +32,15 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF5F7F4),
       ),
-      home: const ProfilePage(),
+      home: ProfilePage(jumlahBuka: jumlahBuka),
     );
   }
 }
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final int jumlahBuka;
+
+  const ProfilePage({super.key, required this.jumlahBuka});
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +119,28 @@ class ProfilePage extends StatelessWidget {
                     label: 'Kota',
                     value: 'Jember',
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  const Icon(
+                    Icons.visibility_outlined,
+                    color: Color(0xFF648F81),
+                    size: 28,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Jumlah Aplikasi Dibuka',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$jumlahBuka kali',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF344C43),
+                    ),
+                  ),
                 ],
               ),
             ),
